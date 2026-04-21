@@ -1,21 +1,21 @@
 import asyncio
-import os
 from aiogram import Bot, Dispatcher
+from bot_handlres import router # Routeringizni import qiling
+import os
 from dotenv import load_dotenv
-from bot_handlres import router # Router'ni import qilamiz
-from database import init_db
+
 load_dotenv()
 
+# Bot va Dispatcher ni yaratamiz
+bot = Bot(token=os.getenv("BOT_TOKEN"))
+dp = Dispatcher()
+
 async def main():
-    init_db() # Bazani yaratish
-    await dp.start_polling(bot)
-    bot = Bot(token=os.getenv("BOT_TOKEN"))
-    dp = Dispatcher()
-    
-    # Routerni ulash
+    # Routerni Dispatcher-ga ulaymiz
     dp.include_router(router)
     
     print("Bot ishga tushdi...")
+    # Pollingni boshlaymiz
     await dp.start_polling(bot)
 
 if __name__ == "__main__":
