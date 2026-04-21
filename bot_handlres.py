@@ -6,6 +6,13 @@ from aiogram.utils.keyboard import InlineKeyboardBuilder
 from aiogram.exceptions import TelegramBadRequest
 from aiogram.types import BufferedInputFile
 from api_service import get_ip_info, format_text_report
+import os
+from database import add_user, get_stats
+from dotenv import load_dotenv
+
+
+load_dotenv()
+ADMIN_ID = int(os.getenv("ADMIN_ID"))
 
 router = Router()
 user_data_storage = {}
@@ -21,8 +28,21 @@ def get_ip_kb():
 
 @router.message(Command("start"))
 async def start_handler(message: types.Message):
+    # Foydalanuvchini bazaga qo'shish
+    add_user(message.from_user.id, message.from_user.username, message.from_user.full_name)
     await message.answer("Salom! IP-manzil yuboring, men uni tahlil qilaman.")
-
+    
+@router.message(Command("stats"))
+async def stats_handler(message: types.Message):
+    # Faqat admin ko'ra oladi
+    if message.from_user.id == ADMIN_ID:
+        count, users = get_stats()
+        user_list = "\n".join([f"👤 @{u[0]} ({u[1]})" for u in users if u[0]])
+        await message.answer(f"📊 **Bot Statistikasi:**\n\n"
+                             f"👥 Jami foydalanuvchilar: {count}\n\n"
+                             f"📝 Oxirgi foydalanuvchilar:\n{user_list}")
+    else:
+        await message.answer("Siz admin emassiz!")
 @router.message()
 async def handle_ip(message: types.Message):
     ip = message.text.strip()
