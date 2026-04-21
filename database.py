@@ -1,32 +1,41 @@
-import sqlite3
+import os
+from supabase import create_client, Client
+from dotenv import load_dotenv
 
-def init_db():
-    conn = sqlite3.connect("bot_users.db")
-    cursor = conn.cursor()
-    cursor.execute("""
-        CREATE TABLE IF NOT EXISTS users (
-            user_id INTEGER PRIMARY KEY,
-            username TEXT,
-            full_name TEXT
-        )
-    """)
-    conn.commit()
-    conn.close()
+load_dotenv()
 
-def add_user(user_id, username, full_name):
-    conn = sqlite3.connect("bot_users.db")
-    cursor = conn.cursor()
-    cursor.execute("INSERT OR REPLACE INTO users (user_id, username, full_name) VALUES (?, ?, ?)", 
-                   (user_id, username, full_name))
-    conn.commit()
-    conn.close()
+# Supabase ulanish ma'lumotlari
+url: str = os.getenv("SUPABASE_URL")
+key: str = os.getenv("SUPABASE_KEY")
+supabase: Client = create_client(url, key)
+
+def add_user(user_id, username, full_name, phone_number=None):
+    """
+    Foydalanuvchini bazaga qo'shish yoki yangilash.
+    Telefon raqami ixtiyoriy (agar startda so'ralsa).
+    """
+    data = {
+        "user_id": user_id,
+        "username": username,
+        "full_name": full_name,
+        "phone_number": phone_number
+    }
+    # upsert - foydalanuvchi bo'lsa yangilaydi, bo'lmasa qo'shadi
+    try:
+        supabase.table("users").upsert(data).execute()
+    except Exception as e:
+        print(f"Baza bilan ishlashda xatolik: {e}")
 
 def get_stats():
-    conn = sqlite3.connect("bot_users.db")
-    cursor = conn.cursor()
-    cursor.execute("SELECT COUNT(*) FROM users")
-    count = cursor.fetchone()[0]
-    cursor.execute("SELECT username, full_name FROM users LIMIT 10") # Oxirgi 10 ta foydalanuvchi
-    users = cursor.fetchall()
-    conn.close()
-    return count, users
+    """
+    Umumiy foydalanuvchilar soni va ro'yxatini olish.
+    """
+    try:
+        # Hamma ma'lumotlarni va aniq sonini olamiz
+        response = supabase.table("users").select("*", count="exact").execute()
+        count = response.count
+        users_list = response.data
+        return count, users_list
+    except Exception as e:
+        print(f"Statistika olishda xatolik: {e}")
+        return 0, []

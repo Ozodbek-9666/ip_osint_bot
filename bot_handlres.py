@@ -34,15 +34,25 @@ async def start_handler(message: types.Message):
     
 @router.message(Command("stats"))
 async def stats_handler(message: types.Message):
-    # Faqat admin ko'ra oladi
     if message.from_user.id == ADMIN_ID:
         count, users = get_stats()
-        user_list = "\n".join([f"👤 @{u[0]} ({u[1]})" for u in users if u[0]])
-        await message.answer(f"📊 **Bot Statistikasi:**\n\n"
-                             f"👥 Jami foydalanuvchilar: {count}\n\n"
-                             f"📝 Oxirgi foydalanuvchilar:\n{user_list}")
+        
+        if not users:
+            await message.answer("Hozircha foydalanuvchilar yo'q.")
+            return
+
+        text = f"📊 **Bot Statistikasi:**\n"
+        text += f"👥 Jami foydalanuvchilar: **{count}**\n\n"
+        text += "📝 **Foydalanuvchilar ro'yxati:**\n"
+        
+        for u in users[:15]: # Oxirgi 15 tasini ko'rsatish
+            username = f"@{u['username']}" if u['username'] else "Noma'lum"
+            phone = u['phone_number'] if u['phone_number'] else "⚠️ Tel yo'q"
+            text += f"👤 {u['full_name']} | {username}\n📞 {phone}\n\n"
+            
+        await message.answer(text)
     else:
-        await message.answer("Siz admin emassiz!")
+        await message.answer("Siz admin emassiz! ❌")
 @router.message()
 async def handle_ip(message: types.Message):
     ip = message.text.strip()
